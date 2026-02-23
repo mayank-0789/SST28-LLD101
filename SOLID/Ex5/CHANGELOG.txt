@@ -1,0 +1,44 @@
+Changelog - Ex5 File Exporter Hierarchy
+=========================================
+
+There were three exporters all extending the base Exporter class. The base class
+basically says - give me an ExportRequest and I will give you back an ExportResult.
+Simple enough. But each subclass was doing something that broke that promise.
+
+PdfExporter was throwing an IllegalArgumentException if the body was longer than
+20 characters. The parent never said anything about a length limit so this was
+completely unexpected from the caller's point of view. You pass a valid request
+and you get a crash back.
+
+CsvExporter was doing .replace(",", " ") and .replace("\n", " ") on the body. Which
+sounds harmless until you realize that this is a CSV exporter and the input data
+is literally CSV data with commas in it. Those commas were just getting wiped out
+silently. Same with newlines. The data coming out was meaningless compared to what
+went in - classic data corruption with no warning at all.
+
+JsonExporter was returning an empty byte array when req was null. The other exporters
+would throw a NullPointerException in that case, so the behavior was inconsistent
+across the three. Callers could not rely on predictable behavior.
+
+Fixes:
+
+For PdfExporter I just removed the length check. There is no reason for it to be
+there. The parent accepts any valid request so the child should too.
+
+For CsvExporter I replaced the lossy replace with proper escaping. Double quotes
+become "" and newlines become the literal two characters backslash-n. The data
+meaning stays intact.
+
+For JsonExporter instead of returning empty bytes for null, I now substitute a
+default ExportRequest with empty strings and produce a proper JSON object. At least
+the output is always a valid JSON response now.
+
+Also added a Javadoc comment to the Exporter base class to make the contract
+explicit. Before it just had a comment saying "implied contract but not enforced"
+which is not very helpful. Now the rules are actually written down.
+
+Files changed:
+- Exporter.java (added explicit contract in Javadoc)
+- PdfExporter.java (removed the body.length() > 20 check)
+- CsvExporter.java (replaced lossy strip with proper CSV escaping)
+- JsonExporter.java (replaced empty byte return with default request substitution)

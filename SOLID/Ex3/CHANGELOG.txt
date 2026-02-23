@@ -1,0 +1,43 @@
+Changelog - Ex3 Placement Eligibility
+======================================
+
+So the main problem here was inside EligibilityEngine.java. The evaluate() method
+had this really long if-else chain where every single rule was written one after
+another inside the same method. Like the CGR check, attendance, credits, disciplinary
+flag - all of them just piled up together in one place.
+
+The issue with that is pretty obvious when you think about it. Every time someone
+wants to add a new rule, they have to go back into that method and start editing it.
+And that is risky because you might accidentally break something that was already
+working fine. It also just gets harder to read as more rules get added over time.
+
+What I ended up doing was taking each rule and moving it into its own separate class.
+So now there is a CGRRule, an AttendanceRule, a CreditsRule, and a DisciplinaryRule.
+All of them implement a common interface called EligibilityRule which just has one
+method - evaluate() - that takes a StudentProfile and returns a RuleResult.
+
+The RuleResult is just a small wrapper that holds two things: whether the rule
+passed or not, and the reason string if it failed. That way the engine can collect
+all the failure reasons and pass them to the report printer.
+
+The engine itself now just holds a list of rules and loops through them. It does not
+know what any of the rules are doing internally, it just calls evaluate() on each
+one and checks the result. So if I want to add a new rule, I create a new class,
+implement the interface, and add it to the list in Main. Nothing else changes.
+
+One more thing I added was a RuleConfig class to keep all the threshold values in
+one place. Before, numbers like 8.0 and 75 were just written directly inside the
+logic which makes it harder to track down later if the thresholds need to change.
+
+Files added:
+- EligibilityRule.java
+- RuleResult.java
+- RuleConfig.java
+- CGRRule.java
+- AttendanceRule.java
+- CreditsRule.java
+- DisciplinaryRule.java
+
+Files changed:
+- EligibilityEngine.java (replaced the if-else chain with a loop)
+- Main.java (wires up the rules using RuleConfig and passes them to the engine)

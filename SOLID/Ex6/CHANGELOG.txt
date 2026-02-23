@@ -1,0 +1,42 @@
+Changelog - Ex6 Notification Sender Inheritance
+=================================================
+
+Three senders extending NotificationSender. The base contract is simple - take a
+Notification and send it. But each subclass had something going on that made it
+unreliable to use through the base type.
+
+WhatsAppSender was throwing an IllegalArgumentException if the phone number did not
+start with +. So passing "9876543210" which is a completely normal phone number would
+crash the program. Because of this, Main had a try-catch specifically around wa.send()
+which is a sign something is off. If the caller has to handle one sender differently
+from the others, the inheritance is not really working.
+
+EmailSender was silently cutting the message body at 40 characters. If you sent
+"Hello and welcome to SST!" which is 25 chars it was fine, but any longer message
+would just get chopped without any warning or error. The caller has no idea this
+happened. That is data loss hidden behind normal-looking code.
+
+SmsSender was just not printing the subject at all, while EmailSender was using it.
+So two senders handling the same Notification object differently - one reads the
+subject, one just ignores it. That inconsistency makes the behavior hard to predict.
+
+Fixes:
+
+For WhatsAppSender I removed the throw and replaced it with a simple null check.
+If the phone is null or empty it defaults to "unknown" and sends anyway. No more
+exception for a valid phone number.
+
+For EmailSender I just removed the length check. The full body should always go
+through without being modified.
+
+For SmsSender I added the subject field to the output line so it matches what
+EmailSender does. All three senders now handle the Notification fields consistently.
+
+Since WhatsAppSender no longer throws, the try-catch in Main was also removed. All
+three senders are called the same way now.
+
+Files changed:
+- EmailSender.java (removed body truncation)
+- SmsSender.java (added subject to output)
+- WhatsAppSender.java (replaced throw with null-safe phone defaulting)
+- Main.java (removed try-catch around wa.send())

@@ -1,0 +1,47 @@
+Changelog - Ex4 Hostel Fee Calculator
+======================================
+
+The problem was in HostelFeeCalculator.java. There was a switch-case for room types
+and an if-else chain for add-ons, both sitting inside the calculateMonthly() method.
+Whenever a new room type or add-on had to be added, someone had to open that file
+and edit the switch or add another else-if. That is a classic OCP violation because
+you are modifying code that was already tested and working.
+
+Also the calculator was doing too many things at once - calculating fees, printing
+the receipt, and saving the booking. That felt wrong too.
+
+So what I did was create a RoomPricing interface with three methods: monthlyFee(),
+depositFee(), and displayName(). Each room type then becomes its own class that
+implements this interface and just returns its own values. No conditions anywhere,
+just straightforward data per room type. Added Single, Double, Triple and Deluxe.
+
+Same thing for add-ons. Made an AddOnPricing interface and separate classes for
+Mess, Laundry and Gym. Each one just knows its own price and name.
+
+For the stretch goal I also added a FeePricing interface separately for things like
+late fees. I kept it separate from add-ons on purpose because they feel like different
+concepts to me. Add-ons are things you choose to subscribe to, late fees are charges
+that happen to you. Keeping them separate means you can add new fee types without
+touching the add-on logic and vice versa. LateFeePricing takes days late and a per
+day rate and calculates the total.
+
+The process() method in the calculator now just takes the room object and both lists
+as parameters. It loops through and adds up the amounts. There is no switch anymore,
+no if-else, just a couple of for loops.
+
+Main is where you decide which room and add-ons to use by creating the right objects
+and passing them in.
+
+Files added:
+- RoomPricing.java
+- AddOnPricing.java
+- FeePricing.java
+- SingleRoomPricing.java, DoubleRoomPricing.java, TripleRoomPricing.java, DeluxeRoomPricing.java
+- MessPricing.java, LaundryPricing.java, GymPricing.java
+- LateFeePricing.java
+
+Files changed:
+- HostelFeeCalculator.java (removed switch-case, now loops over pricing objects)
+- FakeBookingRepo.java (updated method signature)
+- ReceiptPrinter.java (updated to use pricing interfaces instead of BookingRequest)
+- Main.java (creates pricing objects and passes them in)
