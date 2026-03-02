@@ -1,0 +1,66 @@
+CHANGELOG — immutable-tickets (HelpLite)
+
+FIXES APPLIED
+
+
+1. IncidentTicket.java — Refactored to a proper immutable class with Builder
+   - Marked class as final: prevents subclassing to re-introduce mutability.
+   - Changed all fields from non-final to private final: fields are set once
+     at construction time and can never be reassigned.
+   - Removed all public setters
+   - Removed the three overloaded constructors (no-arg, 3-arg, 4-arg): they
+     allowed constructing partial/inconsistent objects. Replaced with a single
+     private constructor that only the Builder can call.
+   - Added defensive copy + unmodifiable wrap on tags:
+       tags = Collections.unmodifiableList(new ArrayList<>(b.tags))
+     getTags() previously returned the raw internal ArrayList, allowing callers
+     to silently add or remove tags. Now returns an unmodifiable view.
+   - Introduced static inner Builder class: fluent API with setId(), setTitle(),
+     setReporterEmail(), setPriority(), addTag(), setAssigneeEmail(),
+     setCustomerVisible(), setSlaMinutes(), setSource().
+   - Added Builder.from(IncidentTicket): copy-constructor for the Builder,
+     used by TicketService to produce "updated" tickets without mutating the
+     original.
+   - Centralized ALL validation in Builder.build():
+       - id: non-blank, length <= 20, only [A-Z0-9-] characters.
+       - reporterEmail: must be a valid email address.
+       - title: non-blank, length <= 80.
+       - priority: must be one of LOW / MEDIUM / HIGH / CRITICAL.
+       - slaMinutes: if provided, must be between 5 and 7,200.
+       - assigneeEmail: if provided, must be a valid email address.
+
+2. Validation.java — Fixed invalid regex escape sequences
+   - EMAIL pattern contained \s and \. which are not valid Java string escapes.
+     Java requires \\ to pass a literal backslash to the regex engine.
+   - Fixed: "^[^@\s]+@[^@\s]+\.[^@\s]+$"
+       to: "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+     Without this fix, email validation compiled with warnings and matched
+     incorrect inputs at runtime.
+
+3. TicketService.java — Stopped mutating tickets after creation
+   - createTicket(): was calling new IncidentTicket() (no-arg constructor,
+     now deleted) followed by four setter calls. Replaced with a single
+     Builder chain that builds a complete, validated ticket in one step.
+     Scattered manual if-checks (id blank, email contains "@", title blank)
+     removed — Builder.build() owns all validation now.
+   - escalateToCritical(): was void and mutated priority and tags directly on
+     the passed-in ticket (also exploited the tags list leak). Changed to
+     return a new IncidentTicket via Builder.from(t), leaving the original
+     completely unchanged.
+   - assign(): was void and called setAssigneeEmail() directly on the passed-in
+     ticket, with a duplicate partial email check. Changed to return a new
+     IncidentTicket via Builder.from(t). Duplicate validation removed.
+   - Removed unused ArrayList and List imports.
+
+4. TryIt.java — Updated demo to reflect immutable design
+   - assign() and escalateToCritical() now return new IncidentTicket instances
+     instead of void. Updated call sites to capture the returned objects in
+     separate variables (original, assigned, escalated).
+   - Added proof-of-immutability prints:
+       original.getAssigneeEmail() printed after assign  → still null.
+       assigned.getPriority()      printed after escalate → still MEDIUM.
+   - tags.add("HACKED_FROM_OUTSIDE") wrapped in try/catch
+     UnsupportedOperationException: previously caused an unhandled crash.
+     Now prints "Tag mutation blocked — immutability confirmed." cleanly.
+   - Updated javadoc to describe what the class now demonstrates rather than
+     what it should be fixed to do.

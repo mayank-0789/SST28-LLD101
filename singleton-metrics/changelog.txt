@@ -1,0 +1,23 @@
+CHANGELOG — singleton-metrics (PulseMeter)
+
+FIXES APPLIED
+
+
+1. MetricsRegistry.java — Made a proper thread-safe Singleton
+   - Changed constructor from public to private.
+   - Added reflection guard in constructor: throws IllegalStateException if
+     an instance already exists, blocking ctor.setAccessible(true) attacks.
+   - Fixed getInstance(): was a racy single-check (INSTANCE == null) with no
+     synchronization. Replaced with Double-Checked Locking + volatile field,
+     making it both lazy and thread-safe.
+   - Added readResolve(): deserialization was producing a fresh heap object,
+     breaking the singleton guarantee. readResolve() now returns getInstance()
+     so the existing singleton is always returned.
+   - Removed all "BROKEN ON PURPOSE" and "TODO" comments.
+
+2. MetricsLoader.java — Fixed singleton usage
+   - it was calling new MetricsRegistry(), creating a separate
+     instance whose data was never visible through getInstance().
+   - Replaced with MetricsRegistry.getInstance() so properties are loaded
+     directly into the global singleton.
+   - Cleaned up "BROKEN ON PURPOSE" and "TODO" comments.
