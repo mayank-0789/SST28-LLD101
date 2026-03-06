@@ -1,0 +1,23 @@
+Here's what changed:
+
+MarkerStyle.java
+  - Made all fields (shape, color, size, filled) final so the object truly can't
+    be mutated after creation. No setters exist — just getters and a toString().
+  - This was the core flyweight object that needed to be safe to share.
+
+MarkerStyleFactory.java
+  - Implemented the cache
+  - Uses a HashMap keyed by a stable string like "PIN|RED|12|F" to look up
+    existing styles before creating new ones.
+  - Added cacheSize() so callers (and QuickCheck) can verify how many unique
+    styles actually got created at runtime.
+
+MapMarker.java
+  - Stripped out the raw style fields that used to sit on every marker instance.
+  - Now only holds the extrinsic (marker-specific) data: lat, lng, label.
+  - Holds a reference to a shared MarkerStyle flyweight instead of its own copy.
+
+MapDataSource.java
+  - Replaced all direct `new MarkerStyle(...)` calls with `factory.get(...)`.
+  - A single MarkerStyleFactory instance is reused for the entire load, so
+    duplicate style combos get the same cached object every time.
