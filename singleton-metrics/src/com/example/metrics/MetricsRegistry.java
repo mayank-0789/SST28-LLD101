@@ -21,7 +21,7 @@ public class MetricsRegistry implements Serializable {
     private static volatile MetricsRegistry INSTANCE;
     private final Map<String, Long> counters = new HashMap<>();
 
-    // Private constructor — also guards against reflection-based second construction
+    // Private constructor — also guards against reflection-based api's
     private MetricsRegistry() {
         if (INSTANCE != null) {
             throw new IllegalStateException(
